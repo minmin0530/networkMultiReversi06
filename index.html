@@ -101,10 +101,23 @@
     socketio.on("join", function(data) {
       joinNumber = data.number;
 
+      if (joinNumber == 2) {
+        const button = document.createElement("button");
+        button.onclick = startGame;
+        button.innerText = "ゲーム開始";
+        button.style.fontSize = 32 + "px";
+        panel.appendChild(button);
+        const wait = document.createElement("span");
+        wait.style.fontSize = 32 + "px";
+        wait.innerText = "更に参加者を待ちますか？";
+        panel.appendChild(wait);
+      }
       const span = document.createElement("span");
       span.style.fontSize = 32 + "px";
       span.innerText = "プレイヤー数：" + joinNumber + "人";
       panel.appendChild(span);
+
+
     });
 
     //////////////////////////
@@ -121,6 +134,13 @@
         span.style.fontSize = 32 + "px";
         span.innerText = "ゲーム開始！";
         panel.appendChild(span);
+        for (const p of players) {
+          const playerDiv = document.createElement("div");
+          playerDiv.style.fontSize = 32 + "px";
+          playerDiv.innerHTML = "<span style='color:" + colorArray[p] + "'>プレイヤー" + p + "</span>点数：";
+          panel.appendChild(playerDiv);
+        }
+
       }
     });
     /////////////////////////////////
@@ -128,22 +148,37 @@
     /////////////////////////////////
     socketio.on("put", function (data) {
       turn_server = data.value.turn;
-        for (var y = 0; y < 8; ++y) {
-        for (var x = 0; x < 8; ++x) {
-          if (data.value.field[y][x] != -1) {
-            console.log("field" + data.value.field[y][x]);
-            for (var v = 0; v < 8; ++v) {
-              if (v == data.value.field[y][x]) {
-                ctx[0].fillStyle = colorArray[v ];
-                field[y][x] = v;
-              }
+      for (var y = 0; y < 8; ++y) {
+      for (var x = 0; x < 8; ++x) {
+        if (data.value.field[y][x] != -1) {
+          console.log("field" + data.value.field[y][x]);
+          for (var v = 0; v < 8; ++v) {
+            if (v == data.value.field[y][x]) {
+              ctx[0].fillStyle = colorArray[v ];
+              field[y][x] = v;
             }
-            ctx[0].beginPath();
-            ctx[0].arc((x+1) * 79 - 36, (y+1) * 79 - 36,CELL_HALF_SIZE,0,Math.PI*2,true);
-            ctx[0].fill();
+          }
+          ctx[0].beginPath();
+          ctx[0].arc((x+1) * 79 - 36, (y+1) * 79 - 36,CELL_HALF_SIZE,0,Math.PI*2,true);
+          ctx[0].fill();
+        }
+      }
+      }
+
+      let childNum = 0;
+      for (const p of players) {
+        let point = 0;
+        for (let x = 0; x < 8; ++x) {
+          for (let y = 0; y < 8; ++y) {
+              if (field[y][x] == p) {
+                  point += 1;
+              }
           }
         }
-        }
+        panel.children[childNum + 1].innerHTML = "<span style='color:" + colorArray[p] + "'>プレイヤー" + p + "</span>点数：" + point;
+        ++childNum;
+      }
+
     });
 
 
@@ -167,7 +202,7 @@
     document.onmousedown = function (e){
       if(!e) e = window.event;
       
-      turn = myName % 12;
+      turn = myName;// % 12;
 
       // console.log(joinNumber);
       console.log(turn_server + "::" + turn + "::" + players[turn_server % players.length]);
@@ -190,6 +225,29 @@
       const y = (y0-40)/CELL_SIZE;
       if (field[y][x] != -1) {//既に置かれていた場合は置けないようにする
           return;
+      }
+
+
+      let firstFlag = true;
+      for (let fx = 0; fx < 8; ++fx) {
+        for (let fy = 0; fy < 8; ++fy) {
+          if(field[fy][fx] != -1) {
+            firstFlag = false;
+          }
+        }
+      }
+      //どこにも隣あってない場合
+      if (firstFlag == false &&
+        (x < 7 && field[y][x + 1] == -1) &&
+        (x > 0 && field[y][x - 1] == -1) &&
+        (y < 7 && field[y + 1][x] == -1) &&
+        (y > 0 && field[y - 1][x] == -1) &&
+        (x < 7 && y < 7 && field[y + 1][x + 1] == -1) &&
+        (x > 0 && y > 0 && field[y - 1][x - 1] == -1) &&
+        (x < 7 && y > 0 && field[y - 1][x + 1] == -1) &&
+        (x > 0 && y < 7 && field[y + 1][x - 1] == -1) 
+      ) {
+        return;
       }
 
       let beforePoint = 0;//置く前のコマの数を計算
@@ -237,11 +295,25 @@
           }
       }
       console.log(beforePoint + "@@" + afterPoint);
-      if (beforePoint + 1 == afterPoint && count >= joinNumber * 2) {
+      if (beforePoint > 0 && beforePoint + 1 == afterPoint && count >= 2) {
           field[y][x] = -1;
           return;
       }
 
+      
+      let childNum = 0;
+      for (const p of players) {
+        let point = 0;
+        for (let x = 0; x < 8; ++x) {
+          for (let y = 0; y < 8; ++y) {
+              if (field[y][x] == p) {
+                  point += 1;
+              }
+          }
+        }
+        panel.children[childNum + 1].innerHTML = "<span style='color:" + colorArray[p] + "'>プレイヤー" + p + "</span>点数：" + point;
+        ++childNum;
+      }
       ++count;
     
       for (var v = 0; v < nameArray.length + 3; ++v) {
@@ -287,11 +359,11 @@
       panel.appendChild(span);
 
 
-      const button = document.createElement("button");
-      button.onclick = startGame;
-      button.innerText = "ゲーム開始";
-      button.style.fontSize = 32 + "px";
-      panel.appendChild(button);
+      // const button = document.createElement("button");
+      // button.onclick = startGame;
+      // button.innerText = "ゲーム開始";
+      // button.style.fontSize = 32 + "px";
+      // panel.appendChild(button);
     }
 
     //////////////////

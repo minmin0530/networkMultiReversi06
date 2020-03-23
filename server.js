@@ -31,7 +31,7 @@ var fieldOwner = [];
 var players = [];
 var fieldNumberArray = [];
 //初期化（オセロ盤と順番の初期化）
-for (var v = 0; v < 3; ++v) {
+for (var v = 0; v < 100; ++v) {
     var arrayY = [];
     for (var y = 0; y < 8; ++y) {
         var arrayX = [];
